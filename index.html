@@ -132,7 +132,7 @@
           <text id="muLabel" x="0" y="66" text-anchor="middle" class="label">&mu;</text>
 
           <!-- Stacked value-line labels (top: x, below: z) -->
-          <text id="xValueLabel" class="label" x="0" y="0" text-anchor="middle">x = 50</text>
+          <text id="xValueLabel" class="label" x="0" y="0" text-anchor="middle">x = 40</text>
           <text id="zValueLabel" class="label" x="0" y="0" text-anchor="middle">z = 0.00</text>
 
           <!-- Half .500 (or 50%) label -->
@@ -154,7 +154,7 @@
     <section class="work" aria-labelledby="writeup-title">
       <h2 id="writeup-title">Steps</h2>
       <p id="writeupQuestion">
-        Question: What <span id="qOutput">proportion</span> of the distribution N(<span id="qMu">50</span>, <span id="qSigma">10</span>) is <span id="qSide">below</span> the value of <span id="qX">41</span>?
+        Question: What <span id="qOutput">proportion</span> of the distribution N(<span id="qMu">50</span>, <span id="qSigma">10</span>) is <span id="qSide">below</span> the value of <span id="qX">40</span>?
       </p>
       <p id="writeupWork"></p>
       <p id="writeupSolution">
@@ -169,8 +169,8 @@
         <legend>Value (x)</legend>
         <label for="xRange" id="xLabelFull">Choose a value between 20 and 80:</label>
         <div class="row" aria-live="off">
-          <input type="range" id="xRange" min="20" max="80" step="1" value="50" aria-describedby="xHelp" />
-          <span class="readout" aria-label="Selected value" id="xReadout">50</span>
+          <input type="range" id="xRange" min="20" max="80" step="1" value="40" aria-describedby="xHelp" />
+          <span class="readout" aria-label="Selected value" id="xReadout">40</span>
         </div>
         <div id="xHelp" class="hint">Mean &mu; defaults to 50 and standard deviation &sigma; to 10. Use arrow keys for fine changes.</div>
       </fieldset>
@@ -195,11 +195,11 @@
       <fieldset id="outputFieldset">
         <legend>Output type</legend>
         <div>
-          <input type="radio" name="output" id="out-prop" value="proportion" checked />
+          <input type="radio" name="output" id="out-prop" value="proportion" />
           <label for="out-prop">Proportion</label>
         </div>
         <div>
-          <input type="radio" name="output" id="out-perc" value="percentage" />
+          <input type="radio" name="output" id="out-perc" value="percentage" checked />
           <label for="out-perc">Percentage</label>
         </div>
         <div>
@@ -226,12 +226,12 @@
   // state
   // =========================================
   const state = {
-    mean: DEFAULT_MEAN,
-    sd: DEFAULT_SD,
-    xValue: 50,
-    shadeMode: 'below', // 'above' | 'below'
-    output: 'proportion' // 'proportion' | 'percentage' | 'percentile' | 'probability'
-  };
+       mean: DEFAULT_MEAN,
+      sd: DEFAULT_SD,
+      xValue: 40,
+      shadeMode: 'below',
+      output: 'percentage'
+     };
 
   // =========================================
   // utils
@@ -850,7 +850,7 @@
           ? `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations away from the mean.` 
           : zRounded > 0 
             ? `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations above the mean.` 
-            : `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations below the mean.`}`
+            : `This tells us that ${x.toFixed(0)} is at ${zStr} standard deviations below the mean.`}`
 
     // Step 3 — Choose table (+ reminder if needed)
     const s3 =
