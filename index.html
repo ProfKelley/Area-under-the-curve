@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Area Under the Curve â€” Accessible HTML Activity</title>
+  <title>The Area Under the Curve</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -89,28 +89,9 @@
 </head>
 <body>
   <header>
-    <h1>Area Under the Curve</h1>
-    
-    <div class="lead">
-      <h3>How to Solve a Normal Distribution Problem</h3>
-      <ol>
-        <li>
-          <strong>Draw the curve:</strong> Sketch the normal distribution (bell-shaped curve) with mean 50 and standard deviation 10. Mark the mean at the center, then note values at ±1, ±2, and ±3 SD. Draw vertical lines for the mean and your chosen x-value. Shade the relevant area.
-        </li>
-        <li>
-          <strong>Calculate the z-score:</strong> Convert the x-value into its z-score.
-        </li>
-        <li>
-          <strong>Choose the correct z-table:</strong> From the diagram, decide whether to use <em>Area Between Mean &amp; Z</em> or <em>Area Beyond Z</em>, and look up the proportion.
-        </li>
-        <li>
-          <strong>Report the result:</strong> Express the shaded area as a proportion, percentage, percentile, or probability. Multiply a proportion by 100 to turn it into a percentage (e.g., .234 x 100 = 23.4%).
-        </li>
-      </ol>
-    </div>
-
-    
-    <p class="keyboard">Keyboard tips: <kbd>Tab</kbd> to move, <kbd>Space</kbd> to choose radios, and arrow keys to adjust the slider.</p>
+    <h1>Solving for the Area Under the Curve</h1>
+    <p>By using the controls below, adjust both the Question asked and the Solution provided.</p>
+    <p class="keyboard">Keyboard shortcuts: <kbd>Tab</kbd> to move, <kbd>Space</kbd> to choose radios, and arrow keys to adjust the slider.</p>
   </header>
 
   <main>
@@ -168,10 +149,10 @@
     </section>
 
     <!-- ===================== -->
-    <!-- Write-up (below graph) -->
+    <!-- How to Solve a Normal Distribution Problem (below graph) -->
     <!-- ===================== -->
     <section class="work" aria-labelledby="writeup-title">
-      <h2 id="writeup-title">Write-up</h2>
+      <h2 id="writeup-title">Steps</h2>
       <p id="writeupQuestion">
         Question: What <span id="qOutput">proportion</span> of the distribution N(<span id="qMu">50</span>, <span id="qSigma">10</span>) is <span id="qSide">below</span> the value of <span id="qX">41</span>?
       </p>
@@ -807,7 +788,13 @@
           : `Solution: ${lhs} ${equation}`;
   
     // --- 2) Write into the HTML paragraph (no SVG positioning now) ---
-    el.textContent = solutionText;
+    const work = document.getElementById('writeupWork');
+    if (work) {
+      const pretty = solutionText.replace(/^Solution:\s*/, '4. <strong>Solution</strong>: ');
+      work.innerHTML += '<br>' + pretty;
+    }
+    el.textContent = '';
+
   }
   
   // ================================
@@ -838,32 +825,37 @@
       (sideWord === 'above' && zRounded <= 0);
   
     const includePhrase = includesMean ? 'includes the mean' : 'does not include the mean';
-    const tableName = includesMean ? 'Area Between Mean & Z' : 'Area Beyond Z';
+    const tableName = includesMean ? 'Area Between the Mean & Z' : 'Area Beyond Z';
   
     // Optional reminder for percentage / percentile (treat the same here)
     let reminder = '';
     if (state.output === 'percentage' || state.output === 'percentile') {
-      const prop = a.area; // overall proportion of the shaded region
-      const propStr = prop.toFixed(3);
-      const pctStr  = (prop * 100).toFixed(1) + '%';
+      // Always use the numeric proportion (0..1), not the pre-formatted labelValue
+      const numericProp = includesMean ? a.areaBetween : a.beyondValue; // number
+      const propStr = numericProp.toFixed(3);
+      const pctStr  = (numericProp * 100).toFixed(1) + '%';
       reminder = ` For percentages and percentile rankings, multiply the proportion by 100 (e.g., ${propStr} × 100 = ${pctStr}).`;
     }
-  
+
     // Step 1 — Draw & shade
     const s1 =
-      `1. First, draw a picture of the normal distribution N(${mu.toFixed(0)}, ${sd.toFixed(0)}). ` +
-      `Shade the area ${sideWord} x = ${x.toFixed(0)}. This shaded region ${includePhrase}, ` +
-      `extending from the ${includesMean ? 'far left up to the chosen value' : 'chosen value out into the tail'}.`;
+      `1. <strong>Draw the Picture</strong> of the normal distribution N(${mu.toFixed(0)}, ${sd.toFixed(0)}). On the x-axis, specify the values corresponding to 0, &plusmn;1, &plusmn;2, and &plusmn;3 standard deviations. ` +
+      `Shade the area ${sideWord} x = ${x.toFixed(0)}.`;
   
     // Step 2 — z-score
     const s2 =
-      `2. Second, calculate the z-score for the value of ${x.toFixed(0)}. ` +
-      `Use the formula z = (x − μ)/σ = (${x.toFixed(0)} − ${mu.toFixed(0)})/${sd.toFixed(0)} = ${zStr}.`;
-  
+      `2. <strong>Calculate the z-score</strong> for the value of ${x.toFixed(0)}. ` +
+      `Use the formula z = (x − μ)/σ = (${x.toFixed(0)} − ${mu.toFixed(0)})/${sd.toFixed(0)} = ${zStr}. ` +
+      `${Math.abs(zRounded) < 1e-12 
+          ? `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations away from the mean.` 
+          : zRounded > 0 
+            ? `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations above the mean.` 
+            : `This tells us that ${x.toFixed(0)} is ${zStr} standard deviations below the mean.`}`
+
     // Step 3 — Choose table (+ reminder if needed)
     const s3 =
-      `3. Third, look at the diagram. Because the shaded region ${includePhrase}, ` +
-      `we use the <em>${tableName}</em> table.` + reminder;
+      `3. <strong>Select the z-table</strong>. Since the shaded region ${includePhrase}, ` +
+      `we will use the ${tableName} table. The proportion of the distribution ${includesMean ? 'between the mean and Z' : 'beyond Z'} is ${(includesMean ? Math.abs(a.area - 0.5) : a.area).toFixed(3)}.` + reminder;
   
     // Write with line breaks (keeps your existing <p id="writeupWork">)
     el.innerHTML = `${s1}<br>${s2}<br>${s3}`;
@@ -897,7 +889,7 @@
     const absZStr = (roundTo(Math.abs(a.z), 3)).toFixed(3);
 
     const why = (guidance.whichTable.indexOf('Between') !== -1)
-      ? 'Use Area Between Mean & Z table: look up |z| to get the area between mean and z; then add 0.500 for the fully shaded half.'
+      ? 'Use Area Between the Mean & Z table: look up |z| to get the area between the mean and z; then add 0.500 for the fully shaded half.'
       : 'Use Area Beyond Z table: look up |z| to get the tail area beyond z.';
 
     let steps = '';
@@ -989,7 +981,7 @@
         q = `Question: What proportion of values from N(${mu}, ${sd}) are ${sidePhrase} ${x}?`;
     }
   
-    el.textContent = q;
+    el.innerHTML = '<strong>Questions Asked:</strong> ' + q.replace(/^Question:\s*/, '');
   }
 
 
