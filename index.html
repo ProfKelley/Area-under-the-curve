@@ -90,7 +90,7 @@
 <body>
   <header>
     <h1>Solving for the Area Under the Curve</h1>
-    <p>By using the controls below, adjust both the Question asked and the Solution provided.</p>
+    <p>Learn how to use the normal distribution to answer questions about <b>proportion</b>, <b>percentage</b>, <b>probability</b>, and <b>percentile rank</b>. Use the controls below to modify the <b><em>Question Asked</em></b>. Then observe the resulting changes in the graph and the step-by-step solution guide. This demonstration helps with both visualizing and understanding the logic for finding the area under the curve</p>
     <p class="keyboard">Keyboard shortcuts: <kbd>Tab</kbd> to move, <kbd>Space</kbd> to choose radios, and arrow keys to adjust the slider.</p>
   </header>
 
@@ -790,7 +790,7 @@
     // --- 2) Write into the HTML paragraph (no SVG positioning now) ---
     const work = document.getElementById('writeupWork');
     if (work) {
-      const pretty = solutionText.replace(/^Solution:\s*/, '4. <strong>Solution</strong>: ');
+      const pretty = solutionText.replace(/^Solution:\s*/, '4. <strong><em>Solution</em></strong>: ');
       work.innerHTML += '<br>' + pretty;
     }
     el.textContent = '';
@@ -981,7 +981,7 @@
         q = `Question: What proportion of values from N(${mu}, ${sd}) are ${sidePhrase} ${x}?`;
     }
   
-    el.innerHTML = '<strong>Questions Asked:</strong> ' + q.replace(/^Question:\s*/, '');
+    el.innerHTML = '<strong><em>Question Asked:</em></strong> ' + q.replace(/^Question:\s*/, '');
   }
 
 
