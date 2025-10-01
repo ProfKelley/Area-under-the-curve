@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Area Under the Curve â€” Accessible HTML Activity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#111111;
+      --muted:#444444;
+      --accent:#0b57d0;
+      --accent-2:#185abc; /* blue (Beyond Z) */
+      --green:#0a7b34;    /* green (Between Mean & Z) */
+      --yellow:#ffd60a;   /* yellow (half) */
+      --line:#222222;
+      --panel:#f3f4f6;
+      --grid:#e5e7eb;
+      --focus:#ff7a00;
+    }
+    #solutionLabel {
+     font-size: 16px;
+     font-weight: bold;   /* optional */
+    }
+    
+    /* Responsive SVG height: not too short on phones, not taller than desktop */
+    #curveSvg { height: clamp(260px, 55vw, 380px); }
+    
+    html,body{
+      background:var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      line-height:1.45;
+    }
+    header,main,section,footer{max-width: 980px; margin: 0 auto; padding-inline: 1rem;}
+    header{padding-top:1.25rem; padding-bottom:.25rem;}
+    h1{font-size: clamp(1.25rem, 1rem + 2vw, 1.75rem); margin: 0 0 .25rem 0;}
+    p.lead{margin:.25rem 0 .75rem 0; color:var(--muted)}
+    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+    /* Layout blocks */
+    .viz-wrap{background:var(--panel); border:1px solid #e5e7eb; border-radius: 10px; padding: .5rem; margin-bottom: 1rem;}
+    .controls{display:grid; gap:1rem; grid-template-columns: 1fr; margin-bottom: 1rem;}
+    @media (min-width: 860px){
+      .controls{grid-template-columns: 1.2fr 1fr 1fr;}
+    }
+    fieldset{border:1px solid #e5e7eb; border-radius:10px; padding:.75rem .9rem; background:#fff;}
+    legend{padding:0 .4rem; font-weight:600;}
+    label{display:inline-block; margin:.25rem 0; }
+    .row{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap}
+    input[type="range"]{width:100%;}
+    .readout{font-variant-numeric: tabular-nums; font-weight:700; padding:.1rem .35rem; border-radius:6px; background:#fff3; border:1px solid #ddd}
+    .hint{font-size:.9rem; color:var(--muted)}
+    .keyboard{font-size:.95rem; color:var(--muted); margin-top:.25rem}
+
+    .live{border:1px dashed #cbd5e1; background:#f8fafc; padding:.75rem; border-radius:10px; margin-bottom:1rem;}
+    .work{border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:1rem; margin-bottom:1rem;}
+    code{background:#f1f5f9; padding:.1rem .25rem; border-radius:4px;}
+    footer{padding:1.25rem 1rem 2rem; color:var(--muted); font-size:.95rem}
+
+    /* SVG styles */
+    svg text{font-family: inherit;}
+    .tick{font-size:.78rem; fill:#2b2b2b}
+    .axis{stroke:#aaa}
+    .grid{stroke:var(--grid); stroke-dasharray:3 3}
+    .y-axis-line{stroke:#b4b4b4}
+    .curve{stroke:var(--line); stroke-width:2; fill:none}
+    .mean-line{stroke:var(--accent); stroke-width:2}
+    .value-line{stroke:#7c3aed; stroke-width:2; stroke-dasharray:5 4}
+    .label{font-weight:700}
+    .label-small{font-size:1.2rem}
+    .beyond-label{fill:var(--accent-2)} /* blue */
+    .between-label{fill:var(--green)}    /* green */
+    .half-label{fill:#000}
+
+    .shade-yellow{fill:var(--yellow); stroke:#8a6700; stroke-width:1}
+    .shade-green{fill:var(--green); fill-opacity:.2; stroke:var(--green); stroke-width:1.2}
+    .shade-blue{fill:var(--accent-2); fill-opacity:.18; stroke:var(--accent-2); stroke-width:1.2}
+
+    /* Focus */
+    a, button, input, select {outline-color: var(--focus)}
+    input[type="radio"]:focus + span,
+    input[type="range"]:focus{outline: 2px solid var(--focus); outline-offset: 2px}
+
+    @media (prefers-reduced-motion: reduce){
+      *, *::before, *::after{animation:none !important; transition:none !important}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Area Under the Curve</h1>
+    
+    <div class="lead">
+      <h3>How to Solve a Normal Distribution Problem</h3>
+      <ol>
+        <li>
+          <strong>Draw the curve:</strong> Sketch the normal distribution (bell-shaped curve) with mean 50 and standard deviation 10. Mark the mean at the center, then note values at ±1, ±2, and ±3 SD. Draw vertical lines for the mean and your chosen x-value. Shade the relevant area.
+        </li>
+        <li>
+          <strong>Calculate the z-score:</strong> Convert the x-value into its z-score.
+        </li>
+        <li>
+          <strong>Choose the correct z-table:</strong> From the diagram, decide whether to use <em>Area Between Mean &amp; Z</em> or <em>Area Beyond Z</em>, and look up the proportion.
+        </li>
+        <li>
+          <strong>Report the result:</strong> Express the shaded area as a proportion, percentage, percentile, or probability. Multiply a proportion by 100 to turn it into a percentage (e.g., .234 x 100 = 23.4%).
+        </li>
+      </ol>
+    </div>
+
+    
+    <p class="keyboard">Keyboard tips: <kbd>Tab</kbd> to move, <kbd>Space</kbd> to choose radios, and arrow keys to adjust the slider.</p>
+  </header>
+
+  <main>
+    <section class="viz-wrap" aria-labelledby="viz-title">
+      <h2 id="viz-title" class="sr-only">Normal Curve Visualization</h2>
+
+      <svg id="curveSvg" role="img" aria-labelledby="svg-title svg-desc" width="100%" height="380" viewBox="0 0 980 380">
+        <title id="svg-title">Normal curve with mean and chosen value markers, dynamic shaded area, and accessible axes.</title>
+        <desc id="svg-desc">A bell curve centered at the mean &mu;. A vertical line marks &mu;, and another marks the chosen value x. The shaded region shows the area above or below x. Labels show x, z, and which z-table applies.</desc>
+
+        <!-- Baseline & axes containers -->
+        <g id="axes">
+          <line id="xBaseline" class="axis" x1="56" y1="330" x2="940" y2="330"></line>
+          <line id="yAxisLine" class="y-axis-line" x1="56" y1="48" x2="56" y2="330"></line>
+          <g id="xTicks"></g>
+          <g id="yTicks"></g>
+          <text id="yAxisLabel" class="tick" text-anchor="start">Proportion</text>
+        </g>
+
+        <!-- Grid lines (y and optional x) -->
+        <g id="yGrid"></g>
+        <g id="xGrid"></g>
+
+
+        <!-- Curve & shading layers (order matters: yellow under, then green/blue, then curve/lines) -->
+        <g id="plot">
+          <path id="shadeYellow" class="shade-yellow" d=""></path>
+          <path id="shadeGreen" class="shade-green" d=""></path>
+          <path id="shadeBlue" class="shade-blue" d=""></path>
+
+          <path id="curvePath" class="curve" d=""></path>
+          <line id="meanLine" class="mean-line" x1="0" x2="0" y1="70" y2="330"></line>
+          <line id="valueLine" class="value-line" x1="0" x2="0" y1="48" y2="330"></line>
+        </g>
+
+        <!-- Labels -->
+        <g id="labels">
+          <text id="muLabel" x="0" y="66" text-anchor="middle" class="label">&mu;</text>
+
+          <!-- Stacked value-line labels (top: x, below: z) -->
+          <text id="xValueLabel" class="label" x="0" y="0" text-anchor="middle">x = 50</text>
+          <text id="zValueLabel" class="label" x="0" y="0" text-anchor="middle">z = 0.00</text>
+
+          <!-- Half .500 (or 50%) label -->
+          <text id="halfLabel" class="half-label label" x="0" y="200" text-anchor="middle" opacity="0">.500</text>
+
+          <!-- Table guidance label above the curve (positioned dynamically +12px above top of stacked labels) -->
+          <text id="tableLabel" class="label-small" x="490" y="22" text-anchor="middle" title="" role="note"> </text>
+
+          <!-- Baseline tick text at ends and mean -->
+          <text id="tickMean" class="tick" x="0" y="348" text-anchor="middle"></text>
+
+        </g>
+      </svg>
+    </section>
+
+    <!-- ===================== -->
+    <!-- Write-up (below graph) -->
+    <!-- ===================== -->
+    <section class="work" aria-labelledby="writeup-title">
+      <h2 id="writeup-title">Write-up</h2>
+      <p id="writeupQuestion">
+        Question: What <span id="qOutput">proportion</span> of the distribution N(<span id="qMu">50</span>, <span id="qSigma">10</span>) is <span id="qSide">below</span> the value of <span id="qX">41</span>?
+      </p>
+      <p id="writeupWork"></p>
+      <p id="writeupSolution">
+        Solution: For x ≤ 41, the corresponding proportion under the curve is 0.184.
+      </p>
+    </section>
+
+    <form id="controls" class="controls" aria-describedby="controls-hint">
+      <p id="controls-hint" class="sr-only">All controls are keyboard reachable. Use Tab to move focus; arrow keys adjust the slider; Space selects radio items.</p>
+
+      <fieldset>
+        <legend>Value (x)</legend>
+        <label for="xRange" id="xLabelFull">Choose a value between 20 and 80:</label>
+        <div class="row" aria-live="off">
+          <input type="range" id="xRange" min="20" max="80" step="1" value="50" aria-describedby="xHelp" />
+          <span class="readout" aria-label="Selected value" id="xReadout">50</span>
+        </div>
+        <div id="xHelp" class="hint">Mean &mu; defaults to 50 and standard deviation &sigma; to 10. Use arrow keys for fine changes.</div>
+      </fieldset>
+
+      <fieldset id="shadeFieldset">
+        <legend>Shading choice</legend>
+        <div role="radiogroup" aria-labelledby="shadeLegend">
+          <div>
+            <input type="radio" name="shade" id="shade-below" value="below" checked />
+            <span></span>
+            <label for="shade-below">Calculate area <strong>below</strong> the value</label>
+          </div>
+          <div>
+            <input type="radio" name="shade" id="shade-above" value="above" />
+            <span></span>
+            <label for="shade-above">Calculate area <strong>above</strong> the value</label>
+          </div>
+        </div>
+        <div class="hint">&ldquo; Below &rdquo; shades left of x; &ldquo; Above &rdquo; shades right of x.</div>
+      </fieldset>
+
+      <fieldset id="outputFieldset">
+        <legend>Output type</legend>
+        <div>
+          <input type="radio" name="output" id="out-prop" value="proportion" checked />
+          <label for="out-prop">Proportion</label>
+        </div>
+        <div>
+          <input type="radio" name="output" id="out-perc" value="percentage" />
+          <label for="out-perc">Percentage</label>
+        </div>
+        <div>
+          <input type="radio" name="output" id="out-prob" value="probability" />
+          <label for="out-prob">Probability</label>
+        </div>
+        <div>
+          <input type="radio" name="output" id="out-percentile" value="percentile" />
+          <label for="out-percentile">Percentile</label>
+        </div>
+        <div class="hint">Percentages/percentiles show with one decimal (e.g., 84.1%). Proportions/probabilities show three decimals (e.g., 0.841).</div>
+      </fieldset>
+    </form>
+  </main>
+
+  <script>
+  // =========================================
+  // constants (adjust &mu; and &sigma; here)
+  // =========================================
+  const DEFAULT_MEAN = 50;
+  const DEFAULT_SD   = 10;
+
+  // =========================================
+  // state
+  // =========================================
+  const state = {
+    mean: DEFAULT_MEAN,
+    sd: DEFAULT_SD,
+    xValue: 50,
+    shadeMode: 'below', // 'above' | 'below'
+    output: 'proportion' // 'proportion' | 'percentage' | 'percentile' | 'probability'
+  };
+
+  // =========================================
+  // utils
+  // =========================================
+  const $ = sel => document.querySelector(sel);
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function roundTo(n, dp){
+    const f = Math.pow(10, dp);
+    return Math.round((n + Number.EPSILON) * f) / f;
+  }
+
+  function ceilToStep(value, step){
+    return Math.ceil(value/step) * step;
+  }
+
+  function formatProportion(p){ return (roundTo(p, 3)).toFixed(3); }        // e.g., 0.841
+  function formatPercent(p){ return (roundTo(p*100, 1)).toFixed(1) + '%'; } // e.g., 84.1%
+
+  function toUnits(p, outputType){
+    if(outputType === 'percentage' || outputType === 'percentile'){
+      return formatPercent(p);
+    }
+    return formatProportion(p); // 'proportion' or 'probability'
+  }
+
+  // =========================================
+  // math (standard normal)
+  // =========================================
+  function standardNormalPDF(z){
+    const invSqrt2Pi = 1 / Math.sqrt(2*Math.PI);
+    return invSqrt2Pi * Math.exp(-0.5 * z*z);
+  }
+
+  // erf approximation (Abramowitz & Stegun 7.1.26)
+  function erf(x){
+    const sign = (x >= 0) ? 1 : -1;
+    x = Math.abs(x);
+    const p = 0.3275911;
+    const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429;
+    const t = 1.0/(1.0 + p*x);
+    const y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-x*x);
+    return sign*y;
+  }
+  function standardNormalCDF(z){
+    return 0.5 * (1 + erf(z / Math.SQRT2));
+  }
+
+  // Areas for current state
+  function computeAreas(s){
+    const z = (s.xValue - s.mean) / s.sd;
+    const pBelow = standardNormalCDF(z);
+    const pAbove = 1 - pBelow;
+    const isPercentile = (s.output === 'percentile');
+    const useBelow = isPercentile ? true : (s.shadeMode === 'below');
+    const area = useBelow ? pBelow : pAbove;
+    const pHalf = 0.5;
+    const areaBetween = Math.abs(pBelow - pHalf);
+    const beyondValue = Math.min(pBelow, pAbove);
+    return { z, pBelow, pAbove, area, useBelow, pHalf, areaBetween, beyondValue };
+  }
+
+  // Table guidance (label + which paths to shade)
+  function decideTableLabels(s, a){
+    const atMean = Math.abs(a.z) < 1e-12;
+    let whichTable = '';
+    let labelValue = '';
+    let labelType = ''; // 'beyond' or 'between'
+    let showHalf = false;
+    const halfValue = toUnits(0.5, s.output);
+
+    if (atMean) {
+      whichTable = 'Area Between the Mean and Z';
+      labelValue = (s.output === 'percentage' || s.output === 'percentile') ? formatPercent(0) : formatProportion(0);
+      labelType = 'between';
+      showHalf = true;
+    } else if (a.area > 0.5) {
+      whichTable = 'Area Between the Mean and Z';
+      labelValue = toUnits(a.areaBetween, s.output);
+      labelType = 'between';
+      showHalf = true;
+    } else {
+      whichTable = 'Area Beyond Z';
+      labelValue = toUnits(a.beyondValue, s.output);
+      labelType = 'beyond';
+      showHalf = false;
+    }
+    return { whichTable, labelValue, labelType, showHalf, halfValue };
+  }
+
+  // =========================================
+  // SVG scales & geometry
+  // =========================================
+  const SVG = { width: 980, height: 380, margin: {left:56, right:40, top:18, bottom:50} };
+  const plot = {
+    get xMin(){ return state.mean - 3*state.sd; },
+    get xMax(){ return state.mean + 3*state.sd; },
+    get innerWidth(){ return SVG.width - (SVG.margin.left + SVG.margin.right); },
+    get innerHeight(){ return SVG.height - (SVG.margin.top + SVG.margin.bottom); },
+    get x0(){ return SVG.margin.left; },
+    get y0(){ return SVG.height - SVG.margin.bottom; }, // baseline y
+    // Scale to standard normal peak (â‰ˆ0.399), not divided by &sigma;
+    get yScale(){ return (this.innerHeight*0.88) / 0.50; }, // scale so 0.50 fits comfortably
+    xToPx(x){
+      const t = (x - this.xMin)/(this.xMax - this.xMin);
+      return this.x0 + t*this.innerWidth;
+    },
+    pdfToPy(pdf){ // pdf value -> pixel y (higher pdf -> smaller y)
+      return this.y0 - pdf*this.yScale;
+    }
+  };
+
+  // =========================================
+  // SVG path helpers
+  // =========================================
+  function buildCurvePath(){
+    const N = 300;
+    let d = '';
+    for (let i=0; i<=N; i++){
+      const t = i/N;
+      const x = plot.xMin + t*(plot.xMax - plot.xMin);
+      const z = (x - state.mean)/state.sd;
+      const pdf = standardNormalPDF(z); // standard normal height
+      const px = plot.xToPx(x);
+      const py = plot.pdfToPy(pdf);
+      d += (i===0?`M ${px} ${py}`:` L ${px} ${py}`);
+    }
+    return d;
+  }
+
+  function buildAreaPath(xStart, xEnd){
+    // Build a closed path from baseline up along curve between xStart..xEnd
+    const N = 160;
+    const start = Math.max(plot.xMin, Math.min(xStart, xEnd));
+    const end   = Math.min(plot.xMax, Math.max(xStart, xEnd));
+    let d = `M ${plot.xToPx(start)} ${plot.y0}`;
+    for (let i=0; i<=N; i++){
+      const t = i/N;
+      const x = start + t*(end - start);
+      const z = (x - state.mean)/state.sd;
+      const pdf = standardNormalPDF(z);
+      d += ` L ${plot.xToPx(x)} ${plot.pdfToPy(pdf)}`;
+    }
+    d += ` L ${plot.xToPx(end)} ${plot.y0} Z`;
+    return d;
+  }
+
+  // Draw X-axis ticks only at integer SD offsets: −3..+3 (no half SDs)
+  function drawAxesWithHalfSDTicks(){
+    const xTicksG = $('#xTicks');
+    const xGridG  = $('#xGrid');           // may be null (we guard below)
+    if (!xTicksG) return;
+  
+    if (xGridG)  xGridG.innerHTML = '';
+    xTicksG.innerHTML = '';
+  
+    const ns = 'http://www.w3.org/2000/svg';
+    const SD_TICKS = [-3, -2, -1, 0, 1, 2, 3];
+  
+    SD_TICKS.forEach(k => {
+      const xVal = state.mean + k * state.sd;     // e.g., 50 + k*10
+      const xPx  = plot.xToPx(xVal);
+  
+      // Optional vertical grid line
+      if (xGridG){
+        const g = document.createElementNS(ns, 'line');
+        g.setAttribute('x1', xPx);
+        g.setAttribute('x2', xPx);
+        g.setAttribute('y1', plot.y0);
+        g.setAttribute('y2', plot.y0 - plot.innerHeight); // use innerHeight, not plot.height
+        g.setAttribute('class', 'grid'); // reuse your .grid style
+        xGridG.appendChild(g);
+      }
+  
+      // Tick label (value on x-axis)
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', xPx);
+      t.setAttribute('y', plot.y0 + 18);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('class', 'tick');
+      t.textContent = xVal.toFixed(0);
+      xTicksG.appendChild(t);
+    });
+  }
+
+  function drawYAxisWithProportionTicks(){
+    const yTicksG = $('#yTicks');
+    const yGridG  = $('#yGrid');
+    yTicksG.innerHTML = '';
+    yGridG.innerHTML = '';
+
+    const yMax = 0.50; // fixed axis max
+    for(let y=0; y<=yMax + 1e-12; y += 0.05){
+      const py = plot.pdfToPy(y);
+      // grid
+      const gl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      gl.setAttribute('x1', plot.x0); gl.setAttribute('x2', plot.x0 + plot.innerWidth);
+      gl.setAttribute('y1', py); gl.setAttribute('y2', py);
+      gl.setAttribute('class', 'grid');
+      yGridG.appendChild(gl);
+      // tick
+      const tl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tl.setAttribute('x1', plot.x0 - 6); tl.setAttribute('x2', plot.x0);
+      tl.setAttribute('y1', py); tl.setAttribute('y2', py);
+      tl.setAttribute('stroke', '#6b7280');
+      yTicksG.appendChild(tl);
+      // label
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', plot.x0 - 10);
+      txt.setAttribute('y', py + 4);
+      txt.setAttribute('text-anchor', 'end');
+      txt.setAttribute('class', 'tick');
+      txt.textContent = y.toFixed(2);
+      yTicksG.appendChild(txt);
+    }
+
+    // Y-axis vertical label: rotate so "P" is closest to x-axis
+    const yAxisLabel = $('#yAxisLabel');
+    const anchorX = plot.x0 - 36;  // a bit left of tick labels
+    const anchorY = plot.y0;       // baseline (near x-axis)
+    yAxisLabel.setAttribute('transform', `rotate(-90 ${anchorX} ${anchorY})`);
+    yAxisLabel.setAttribute('x', anchorX);
+    yAxisLabel.setAttribute('y', anchorY);
+    yAxisLabel.setAttribute('text-anchor', 'start'); // start = letter 'P' at the anchor near x-axis
+    yAxisLabel.textContent = 'Proportion';
+  }
+
+  // =========================================
+  // rendering references
+  // =========================================
+  const curvePath = $('#curvePath');
+  const meanLine  = $('#meanLine');
+  const valueLine = $('#valueLine');
+  const muLabel   = $('#muLabel');
+  const xValueLabel = $('#xValueLabel');
+  const zValueLabel = $('#zValueLabel');
+  const halfLabel = $('#halfLabel');
+  const tableLabel= $('#tableLabel');
+
+  const shadeYellow = $('#shadeYellow');
+  const shadeGreen  = $('#shadeGreen');
+  const shadeBlue   = $('#shadeBlue');
+
+  const tickMean    = $('#tickMean');
+  
+  // === responsive type utility (final-size aware) ===
+  // Ensures text stays readable when the SVG scales.
+  // minFinal/maxFinal are desired *on-screen* pixel sizes after scaling.
+  function fontPx(scale, minFinal = 12, maxFinal = 22){
+    const svgEl = document.getElementById('curveSvg');
+    const renderedW = svgEl ? svgEl.clientWidth : SVG.width;  // actual current width
+    const scaleFactor = renderedW / SVG.width;                // how much the SVG is scaled
+    // Base size before the SVG's scaling is applied
+    const base = Math.round(SVG.width * scale);
+    // Convert desired final min/max to base-space by dividing by the scale factor
+    const minBase = Math.round(minFinal / Math.max(scaleFactor, 1e-6));
+    const maxBase = Math.round(maxFinal / Math.max(scaleFactor, 1e-6));
+    return Math.max(minBase, Math.min(maxBase, base));
+  }
+
+
+  // =========================================
+  // draw / update primitives
+  // =========================================
+  function drawCurve(){
+    curvePath.setAttribute('d', buildCurvePath());
+  }
+
+  function drawMarkers(){
+    const meanX = plot.xToPx(state.mean);
+    const valX  = plot.xToPx(state.xValue);
+  
+    // Vertical extent: top at PDF = 0.40, bottom at baseline
+    const yTop = plot.pdfToPy(0.40);
+    const yBottom = plot.y0;
+  
+    // Mean vertical line
+    meanLine.setAttribute('x1', meanX);
+    meanLine.setAttribute('x2', meanX);
+    meanLine.setAttribute('y1', yTop);
+    meanLine.setAttribute('y2', yBottom);
+  
+    // Value vertical line
+    valueLine.setAttribute('x1', valX);
+    valueLine.setAttribute('x2', valX);
+    valueLine.setAttribute('y1', yTop);
+    valueLine.setAttribute('y2', yBottom);
+  
+    // &mu; label centered, just above top of mean line
+    muLabel.setAttribute('x', meanX);
+    muLabel.setAttribute('y', yTop - 6); // small gap above the capped top
+    muLabel.setAttribute('font-size', fontPx(0.020, 12, 18));
+  
+    // Baseline mean tick label
+    tickMean.setAttribute('x', meanX);
+    tickMean.setAttribute('y', plot.y0 + 18);
+    tickMean.textContent = state.mean.toFixed(0);
+  
+    // Stacked value-line labels:
+    //   top: x = ##
+    //   below: z = ±#.##
+    // Vertical position anchored to fixed proportion = 0.48
+    const xLabelY = plot.pdfToPy(0.47);   // fixed height (above mu/line top)
+    const zLabelY = xLabelY + 14;         // stacked just below x label
+  
+    // x label (moves left/right with the value line, fixed height)
+    xValueLabel.setAttribute('x', valX);
+    xValueLabel.setAttribute('y', xLabelY);
+    xValueLabel.textContent = `x = ${state.xValue.toFixed(0)}`;
+    // NEW: responsive font for x label
+    xValueLabel.setAttribute('font-size', fontPx(0.022, 12, 20));
+  
+    // z label (rounded to hundredths)
+    const z = (state.xValue - state.mean) / state.sd;
+    const zTwo = (Math.round((z + Number.EPSILON) * 100) / 100).toFixed(2);
+  
+    zValueLabel.setAttribute('x', valX);
+    zValueLabel.setAttribute('y', zLabelY);
+    zValueLabel.textContent = `z = ${zTwo}`;
+    // NEW: responsive font for z label
+    zValueLabel.setAttribute('font-size', fontPx(0.020, 12, 18));
+  }
+
+
+
+  function clearShades(){
+    shadeYellow.setAttribute('d', '');
+    shadeGreen.setAttribute('d', '');
+    shadeBlue.setAttribute('d', '');
+  }
+
+  function drawShading(a){
+    clearShades();
+    const m = state.mean;
+    const leftHalfStart = plot.xMin;
+    const leftHalfEnd   = m;
+    const rightHalfStart= m;
+    const rightHalfEnd  = plot.xMax;
+    const x = state.xValue;
+
+    if (Math.abs(a.z) < 1e-12){
+      // exactly half (yellow only)
+      if (a.useBelow){
+        shadeYellow.setAttribute('d', buildAreaPath(leftHalfStart, leftHalfEnd));
+      } else {
+        shadeYellow.setAttribute('d', buildAreaPath(rightHalfStart, rightHalfEnd));
+      }
+      return;
+    }
+
+    if (a.area > 0.5){
+      // two-piece: yellow half + green between
+      if (a.useBelow && a.z > 0){
+        shadeYellow.setAttribute('d', buildAreaPath(leftHalfStart, leftHalfEnd));  // fully shaded half
+        shadeGreen.setAttribute('d', buildAreaPath(m, x));                         // between mean and x (right side)
+      } else if (!a.useBelow && a.z < 0){
+        shadeYellow.setAttribute('d', buildAreaPath(rightHalfStart, rightHalfEnd)); // fully shaded half
+        shadeGreen.setAttribute('d', buildAreaPath(x, m));                           // between x and mean (left side)
+      } else if (a.useBelow && a.z < 0){
+        // Shouldn't occur for area>0.5, but guard just in case
+        shadeYellow.setAttribute('d', buildAreaPath(rightHalfStart, rightHalfEnd));
+        shadeGreen.setAttribute('d', buildAreaPath(x, m));
+      } else { // !a.useBelow && a.z > 0
+        shadeYellow.setAttribute('d', buildAreaPath(leftHalfStart, leftHalfEnd));
+        shadeGreen.setAttribute('d', buildAreaPath(m, x));
+      }
+    } else {
+      // one-piece: blue tail only
+      if (a.useBelow){
+        shadeBlue.setAttribute('d', buildAreaPath(plot.xMin, x)); // left tail
+      } else {
+        shadeBlue.setAttribute('d', buildAreaPath(x, plot.xMax)); // right tail
+      }
+    }
+  }
+
+  function updateValueStackLabels(a){
+    const valX  = plot.xToPx(state.xValue);
+    // Base y for the stack (z is closer to the line; x sits above z)
+    const zY = SVG.margin.top + 54;   // robust fixed band near top
+    const xY = zY - 16;               // x = ## sits above z
+    zValueLabel.setAttribute('x', valX);
+    zValueLabel.setAttribute('y', zY);
+    xValueLabel.setAttribute('x', valX);
+    xValueLabel.setAttribute('y', xY);
+
+    // Content with rounding
+    const zTwo = (roundTo(a.z, 2)).toFixed(2);
+    zValueLabel.textContent = `z = ${zTwo}`;
+    xValueLabel.textContent = `x = ${state.xValue.toFixed(0)}`;
+
+    return { topOfStackY: xY, centerX: valX };
+  }
+
+  // ================================
+  // labels (table guidance + .500)
+  // ================================
+  function updateTableLabel(state, a, guidance, stacked){
+    const { whichTable, labelValue, labelType, showHalf, halfValue } = guidance;
+  
+    const labelText = (labelType === 'between')
+      ? `Area Between the Mean and Z: ${labelValue}`
+      : `Area Beyond Z: ${labelValue}`;
+  
+    tableLabel.textContent = labelText;
+    tableLabel.setAttribute('title',
+      labelType === 'between'
+        ? '"Between the Mean and Z" = area between z=0 and your |z|.'
+        : '"Beyond Z" = tail area beyond your |z| away from the mean.'
+    );
+    tableLabel.setAttribute('class',
+      `label-small ${labelType==='between' ? 'between-label' : 'beyond-label'}`);
+  
+    // Vertical placement: keep your existing offset above the x/z stack
+    // Responsive offset: ~6% of current SVG height, min 16px, max 32px
+    const TABLE_LABEL_OFFSET = Math.max(16, Math.min(32, Math.round(SVG.height * 0.06)));
+    const minTop = SVG.margin.top + 14;
+    const y = Math.max(minTop, stacked.topOfStackY - TABLE_LABEL_OFFSET);
+    tableLabel.setAttribute('y', y);
+    tableLabel.setAttribute('x', SVG.width/2);
+    // responsive font for table guidance label
+    tableLabel.setAttribute('font-size', fontPx(0.021, 12, 19));
+
+    // ---- NEW: minimal justification/anchor rules ----
+    if (labelType === 'beyond') {
+      // A/B rule for Beyond Z
+      if (a.useBelow){
+        // left side → left-justify at z = -2.5
+        tableLabel.setAttribute('text-anchor', 'start');
+        tableLabel.setAttribute('x', plot.xToPx(state.mean - 2.5*state.sd));
+      } else {
+        // right side → right-justify at z = +2.5
+        tableLabel.setAttribute('text-anchor', 'end');
+        tableLabel.setAttribute('x', plot.xToPx(state.mean + 2.5*state.sd));
+      }
+    } else {
+      // BETWEEN: show on the SAME side as the green region,
+      // aligned to the mean with proper justification.
+      // If x is to the RIGHT of the mean (z > 0), the green region is on the RIGHT:
+      //   → left-justify and start at mean.
+      // If x is to the LEFT of the mean (z < 0), the green region is on the LEFT:
+      //   → right-justify and end at mean.
+      tableLabel.setAttribute('x', plot.xToPx(state.mean));
+      if (a.z >= 0){
+        tableLabel.setAttribute('text-anchor', 'start');  // begin at mean, extend right
+      } else {
+        tableLabel.setAttribute('text-anchor', 'end');    // end at mean, extend left
+      }
+    }
+    // -------------------------------------------------
+  
+    // .500 (or 50%) label positioning when > 0.5 shaded (unchanged)
+    if (showHalf){
+      // place at ±1σ horizontally
+      const leftOneSDX  = plot.xToPx(state.mean - state.sd);
+      const rightOneSDX = plot.xToPx(state.mean + state.sd);
+      let halfX;
+  
+      if (Math.abs(a.z) < 1e-12){
+        halfX = a.useBelow ? leftOneSDX : rightOneSDX;
+      } else if (a.useBelow && a.z > 0){
+        halfX = leftOneSDX;        // left half fully shaded
+      } else if (!a.useBelow && a.z < 0){
+        halfX = rightOneSDX;       // right half fully shaded
+      } else if (a.useBelow && a.z < 0){
+        halfX = rightOneSDX;
+      } else {
+        halfX = leftOneSDX;
+      }
+  
+      halfLabel.setAttribute('x', halfX);
+      halfLabel.setAttribute('y', plot.pdfToPy(0.10));
+      halfLabel.textContent = halfValue;
+      // responsive font for .500 / 50% label
+      halfLabel.setAttribute('font-size', fontPx(0.024, 12, 22));
+      halfLabel.setAttribute('opacity', '1');
+    } else {
+      halfLabel.setAttribute('opacity', '0');
+    }
+  }
+
+  // ================================
+  // solution label (now in Write-up)
+  // ================================
+  function updateSolutionLabel(state, a, guidance){
+    // Write to the paragraph below the graph instead of SVG text
+    const el = document.getElementById('writeupSolution');
+    if (!el) return;
+  
+    // --- 1) Build the solution text in the requested format ---
+    const xStr = state.xValue.toFixed(0);
+  
+    // Use your existing rounding rules helper
+    const asUnit = (p) => toUnits(p, state.output); // proportion/prob = 3dp; percentage/percentile = 1dp+%
+    const halfStr = asUnit(0.5);
+  
+    // Determine term order (same visual rule you use in the graph)
+    let terms = [];
+    if (guidance.showHalf){
+      const betweenStr = asUnit(a.areaBetween);
+  
+      // Which side is the fully shaded half?
+      let halfOnLeft;
+      if (Math.abs(a.z) < 1e-12) {
+        halfOnLeft = a.useBelow;                // at mean: 'below' = left
+      } else if (a.useBelow && a.z > 0) {
+        halfOnLeft = true;                      // left half fully shaded
+      } else if (!a.useBelow && a.z < 0) {
+        halfOnLeft = false;                     // right half fully shaded
+      } else {
+        // default (rarely reached)
+        halfOnLeft = a.useBelow && a.z >= 0;
+      }
+  
+      terms = halfOnLeft ? [halfStr, asUnit(a.areaBetween)]
+                         : [asUnit(a.areaBetween), halfStr];
+    } else {
+      // one-term (tail only)
+      terms = [asUnit(a.beyondValue)];
+    }
+  
+    // Left-hand side wording by output type
+    let lhs;
+    if (state.output === 'probability'){
+      const symbol = a.useBelow ? '≤' : '≥';
+      lhs = `p(x ${symbol} ${xStr})`;
+    } else if (state.output === 'percentile'){
+      // Percentile always "below", with 'th'
+      lhs = `For x < ${xStr}, the corresponding percentile under the curve is`;
+    } else {
+      const noun = (state.output === 'percentage') ? 'percentage' : 'proportion';
+      const dir  = a.useBelow ? '≤' : '≥';
+      lhs = `For x ${dir} ${xStr}, the corresponding ${noun} under the curve is`;
+    }
+  
+    // Special case: z = 0 → show only one term
+    let equation;
+    if (Math.abs(a.z) < 1e-12) {
+      equation = halfStr;
+    } else {
+      equation = (terms.length === 1)
+        ? `${terms[0]}`
+        : `${terms[0]} + ${terms[1]} = ${asUnit(a.area)}`;
+    }
+  
+    // Percentile final value
+    const percentileText = `${(roundTo(a.pBelow*100, 1)).toFixed(1)}th`;
+  
+    const solutionText = (state.output === 'probability')
+      ? `Solution: ${lhs} = ${equation}`
+      : (state.output === 'percentile')
+          ? `Solution: ${lhs} ${percentileText}`
+          : `Solution: ${lhs} ${equation}`;
+  
+    // --- 2) Write into the HTML paragraph (no SVG positioning now) ---
+    el.textContent = solutionText;
+  }
+  
+  // ================================
+  // Write-up: Work updater (pedagogical 3-step format)
+  // ================================
+  function updateWriteupWork(state, a, guidance){
+    const el = document.getElementById('writeupWork');
+    if (!el) return;
+  
+    const mu = Number(state.mean);
+    const sd = Number(state.sd);
+    const x  = Number(state.xValue);
+  
+    // Percentile is always "below" in your app; otherwise use selected side
+    const isPercentile = state.output === 'percentile';
+    const sideWord = isPercentile ? 'below' : (state.shadeMode === 'below' ? 'below' : 'above');
+  
+    // z with sign, rounded to hundredths (e.g., +0.40)
+    const zRaw = (x - mu) / sd;
+    const zRounded = Math.round((zRaw + Number.EPSILON) * 100) / 100;
+    const zStr = (zRounded >= 0 ? '+' : '') + zRounded.toFixed(2);
+  
+    // Determine if the shaded region includes the mean
+    // (below with z>=0 OR above with z<=0 OR z≈0)
+    const includesMean =
+      Math.abs(zRounded) < 1e-12 ||
+      (sideWord === 'below' && zRounded >= 0) ||
+      (sideWord === 'above' && zRounded <= 0);
+  
+    const includePhrase = includesMean ? 'includes the mean' : 'does not include the mean';
+    const tableName = includesMean ? 'Area Between Mean & Z' : 'Area Beyond Z';
+  
+    // Optional reminder for percentage / percentile (treat the same here)
+    let reminder = '';
+    if (state.output === 'percentage' || state.output === 'percentile') {
+      const prop = a.area; // overall proportion of the shaded region
+      const propStr = prop.toFixed(3);
+      const pctStr  = (prop * 100).toFixed(1) + '%';
+      reminder = ` For percentages and percentile rankings, multiply the proportion by 100 (e.g., ${propStr} × 100 = ${pctStr}).`;
+    }
+  
+    // Step 1 — Draw & shade
+    const s1 =
+      `1. First, draw a picture of the normal distribution N(${mu.toFixed(0)}, ${sd.toFixed(0)}). ` +
+      `Shade the area ${sideWord} x = ${x.toFixed(0)}. This shaded region ${includePhrase}, ` +
+      `extending from the ${includesMean ? 'far left up to the chosen value' : 'chosen value out into the tail'}.`;
+  
+    // Step 2 — z-score
+    const s2 =
+      `2. Second, calculate the z-score for the value of ${x.toFixed(0)}. ` +
+      `Use the formula z = (x − μ)/σ = (${x.toFixed(0)} − ${mu.toFixed(0)})/${sd.toFixed(0)} = ${zStr}.`;
+  
+    // Step 3 — Choose table (+ reminder if needed)
+    const s3 =
+      `3. Third, look at the diagram. Because the shaded region ${includePhrase}, ` +
+      `we use the <em>${tableName}</em> table.` + reminder;
+  
+    // Write with line breaks (keeps your existing <p id="writeupWork">)
+    el.innerHTML = `${s1}<br>${s2}<br>${s3}`;
+  
+    // Mirror to live region for SR users (plain text, no HTML tags)
+    const live = document.getElementById('liveSummary');
+    if (live) live.textContent = `${s1} ${s2} ${s3}`.replace(/<[^>]+>/g, '');
+  }
+
+  function updateLiveSummary(s, a, guidance){
+    const live = $('#liveSummary');
+    const zStr = (roundTo(a.z, 3)).toFixed(3);
+    const areaStr = toUnits(a.area, s.output);
+    const interp = (s.output === 'percentile')
+      ? `Percentile: ${formatPercent(a.pBelow)}`
+      : (s.output === 'percentage')
+          ? `Percentage shaded: ${formatPercent(a.area)}`
+          : (s.output === 'probability')
+              ? `Probability: ${formatProportion(a.area)}`
+              : `Proportion shaded: ${formatProportion(a.area)}`;
+
+    const side = a.useBelow ? 'below' : 'above';
+    live.textContent =
+      `x = ${s.xValue.toFixed(0)} | &mu; = ${s.mean}, &sigma; = ${s.sd} | z = ${zStr}. Shading ${side} the value. `
+      + `${guidance.whichTable} applies. Shaded area = ${areaStr}. ${interp}.`;
+  }
+
+  function updateWorkShown(s, a, guidance){
+    const w = $('#workContent');
+    const zStr = (roundTo(a.z, 3)).toFixed(3);
+    const absZStr = (roundTo(Math.abs(a.z), 3)).toFixed(3);
+
+    const why = (guidance.whichTable.indexOf('Between') !== -1)
+      ? 'Use Area Between Mean & Z table: look up |z| to get the area between mean and z; then add 0.500 for the fully shaded half.'
+      : 'Use Area Beyond Z table: look up |z| to get the tail area beyond z.';
+
+    let steps = '';
+    if (Math.abs(a.z) < 1e-12){
+      const halfStr = toUnits(0.5, s.output);
+      const between0 = (s.output === 'percentage' || s.output === 'percentile') ? formatPercent(0) : formatProportion(0);
+      steps =
+        `<li>At z = 0, the shaded area is exactly ${halfStr}. The part between mean and z is ${between0}.</li>`;
+    } else if (a.area > 0.5){
+      const halfStr = toUnits(0.5, s.output);
+      const betweenStr = toUnits(a.areaBetween, s.output);
+      const totalStr = toUnits(a.area, s.output);
+      steps =
+        `<li>The fully shaded half contributes ${halfStr}.</li>
+         <li>From the table for |z| = ${absZStr}, the &ldquo; between &rdquo; part is ${betweenStr}.</li>
+         <li>Total shaded area = ${halfStr} + ${betweenStr} = <strong>${totalStr}</strong>.</li>`;
+    } else {
+      const tailStr = toUnits(a.beyondValue, s.output);
+      const totalStr = toUnits(a.area, s.output);
+      steps =
+        `<li>From the table for |z| = ${absZStr}, the &ldquo; beyond z &rdquo; tail area is ${tailStr}.</li>
+         <li>Total shaded area = <strong>${totalStr}</strong>.</li>`;
+    }
+
+    let interpretation = '';
+    if (s.output === 'percentile'){
+      interpretation = `Interpretation: ${formatPercent(a.pBelow)} of the distribution lies <em>below</em> x (the percentile).`;
+    } else if (s.output === 'percentage'){
+      interpretation = `Interpretation: ${formatPercent(a.area)} of the distribution is shaded (${a.useBelow?'below':'above'} x).`;
+    } else if (s.output === 'probability'){
+      interpretation = `Interpretation: The probability is ${formatProportion(a.area)} that a randomly chosen value falls ${a.useBelow?'below':'above'} x.`;
+    } else {
+      interpretation = `Interpretation: The proportion shaded is ${formatProportion(a.area)} (${a.useBelow?'below':'above'} x).`;
+    }
+
+    w.innerHTML = `
+      <p><strong>Compute z-score</strong></p>
+      <p><code>z = (x âˆ’ &mu;) / &sigma; = (${s.xValue.toFixed(0)} âˆ’ ${s.mean}) / ${s.sd} = ${zStr}</code></p>
+
+      <p><strong>Which table &amp; why</strong></p>
+      <p>${why}</p>
+
+      <p><strong>Numerical path</strong></p>
+      <ol>${steps}</ol>
+
+      <p><strong>${interpretation}</strong></p>
+    `;
+  }
+  
+  // ================================
+  // Write-up: Question updater (≤ / ≥ phrasing + percentile=below)
+  // ================================
+  function updateWriteupQuestion(state){
+    const el = document.getElementById('writeupQuestion');
+    if (!el) return;
+  
+    const mu = Number(state.mean).toFixed(0);
+    const sd = Number(state.sd).toFixed(0);
+    const x  = Number(state.xValue).toFixed(0);
+  
+    // Percentile is always "below" by convention (you also enforce this elsewhere)
+    const isPercentile = state.output === 'percentile';
+    const isBelow = isPercentile ? true : (state.shadeMode === 'below');
+  
+    // Human-friendly side phrase using inclusive wording
+    const sidePhrase = isBelow ? 'less than or equal to' : 'greater than or equal to';
+  
+    let q;
+    switch (state.output) {
+      case 'probability':
+        q = `Question: What is the probability that a randomly selected value from N(${mu}, ${sd}) is ${sidePhrase} ${x}?`;
+        break;
+  
+      case 'proportion':
+        q = `Question: What proportion of values from N(${mu}, ${sd}) are ${sidePhrase} ${x}?`;
+        break;
+  
+      case 'percentage':
+        q = `Question: What percentage of values in N(${mu}, ${sd}) are ${sidePhrase} ${x}?`;
+        break;
+  
+      case 'percentile':
+        // Percentile asks for rank of the given x (always "below")
+        q = `Question: What percentile rank does x = ${x} correspond to in N(${mu}, ${sd})?`;
+        break;
+  
+      default:
+        // Fallback to proportion phrasing
+        q = `Question: What proportion of values from N(${mu}, ${sd}) are ${sidePhrase} ${x}?`;
+    }
+  
+    el.textContent = q;
+  }
+
+
+  // =========================================
+  // accessibility helpers
+  // =========================================
+  function announce(msg){
+    const live = $('#liveSummary');
+    live.textContent = msg + ' â€” ' + live.textContent;
+  }
+
+  // Force "below" when output = percentile, and keep UI in sync.
+  // Also re-enable radios when leaving percentile.
+  function enforcePercentileRules(){
+    const belowRadio = document.querySelector('input[name="shade"][value="below"]');
+    const aboveRadio = document.querySelector('input[name="shade"][value="above"]');
+    const live = document.getElementById('liveSummary');
+  
+    const wasPercentile = enforcePercentileRules._wasPercentile || false;
+  
+    if (state.output === 'percentile'){
+      const changed = state.shadeMode !== 'below';
+      state.shadeMode = 'below';
+  
+      // Lock radios to "below"
+      if (belowRadio) { belowRadio.checked = true; belowRadio.disabled = true; }
+      if (aboveRadio) { aboveRadio.disabled = true; }
+  
+      // Announce only when we actually change side
+      if (changed && live){
+        live.textContent = 'Percentile selected: shading is set to area below the value.';
+      }
+      enforcePercentileRules._wasPercentile = true;
+    } else {
+      // Leaving percentile: restore radio interactivity
+      if (belowRadio) belowRadio.disabled = false;
+      if (aboveRadio) aboveRadio.disabled = false;
+  
+      // Ensure the UI reflects the current state selection
+      if (state.shadeMode === 'below' && belowRadio) belowRadio.checked = true;
+      if (state.shadeMode === 'above' && aboveRadio) aboveRadio.checked = true;
+  
+      if (wasPercentile && live){
+        live.textContent = 'Percentile off: you can choose area above or below the value.';
+      }
+      enforcePercentileRules._wasPercentile = false;
+    }
+  }
+
+
+  // =========================================
+  // controller
+  // =========================================
+  function onControlsChanged(){
+    // Read UI
+    const x = parseFloat($('#xRange').value);
+    state.xValue = clamp(x, 20, 80);
+    $('#xReadout').textContent = state.xValue.toFixed(0);
+  
+    const selectedShade = document.querySelector('input[name="shade"]:checked');
+    if (selectedShade) state.shadeMode = selectedShade.value;
+  
+    const selectedOut = document.querySelector('input[name="output"]:checked');
+    if (selectedOut) state.output = selectedOut.value;
+  
+    // Enforce percentile behavior
+    enforcePercentileRules();
+  
+    // Write-up: Question (uses only state)
+    updateWriteupQuestion(state);
+  
+    // Compute areas
+    const areas = computeAreas(state);
+  
+    // Axes & curve
+    drawAxesWithHalfSDTicks();
+    drawYAxisWithProportionTicks();
+    drawCurve();
+    drawMarkers();
+  
+    // Shading
+    drawShading(areas);
+  
+    // Labels (stack + table)
+    const stacked = {
+      topOfStackY: plot.pdfToPy(0.47),
+      centerX: plot.xToPx(state.xValue)
+    };
+  
+    const guidance = decideTableLabels(state, areas);
+    updateTableLabel(state, areas, guidance, stacked);
+  
+    // Write-up: Work and Solution (both live above controls now)
+    updateWriteupWork(state, areas, guidance);
+    updateSolutionLabel(state, areas, guidance);
+  
+    // Live summary (ARIA) — keep if you still use #liveSummary; no-op if absent
+    if (document.getElementById('liveSummary')) {
+      updateLiveSummary(state, areas, guidance);
+    }
+  
+    // Remove these calls since those panels were below the controls:
+    // updateWorkShown(state, areas, guidance);  // ← delete
+  }
+
+
+  function init(){
+    // Wire events
+    $('#xRange').addEventListener('input', onControlsChanged);
+    document.querySelectorAll('input[name="shade"]').forEach(el => el.addEventListener('change', onControlsChanged));
+    document.querySelectorAll('input[name="output"]').forEach(el => el.addEventListener('change', onControlsChanged));
+    
+    window.addEventListener('resize', onControlsChanged);
+
+    // First render
+    onControlsChanged();
+  }
+
+  // boot
+  init();
+  </script>
+</body>
+</html>
